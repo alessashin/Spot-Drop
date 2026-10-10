@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "640821914990",
+    "project_id": "spot-drop-ae445",
+    "storage_bucket": "spot-drop-ae445.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:640821914990:android:9e506c8d8dfe5ab10ba57f",
+        "android_client_info": {
+          "package_name": "com.example.finalproject"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDnXufVXPfALxYgizEpUKD3ro-i1YLDsQM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
