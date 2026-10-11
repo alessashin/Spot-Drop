@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:geolocator/geolocator.dart';
 
 class ResponsiveMainLayout extends StatefulWidget {
   const ResponsiveMainLayout({super.key});
@@ -20,8 +21,58 @@ class _ResponsiveMainLayoutState extends State<ResponsiveMainLayout> {
   final MapController _mapController = MapController();
   final Distance _distance = const Distance();
 
-  // User Location (Calinan / Davao area reference)
-  final LatLng _userLocation = const LatLng(7.1907, 125.4553);
+  // 1. Change _userLocation from final to non-final with a default fallback
+  LatLng _userLocation = const LatLng(7.1907, 125.4553);
+  bool _isLoadingLocation = true;
+  @override
+  void initState() {
+    super.initState();
+    _fetchCurrentLocation();
+  }
+
+  // 2. ADD _fetchCurrentLocation HELPER METHOD HERE
+  Future<void> _fetchCurrentLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      if (mounted) setState(() => _isLoadingLocation = false);
+      return;
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        if (mounted) setState(() => _isLoadingLocation = false);
+        return;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      if (mounted) setState(() => _isLoadingLocation = false);
+      return;
+    }
+
+    final Position position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+
+    if (mounted) {
+      setState(() {
+        _userLocation = LatLng(position.latitude, position.longitude);
+        _isLoadingLocation = false;
+      });
+
+      // FIX: Wait for the frame to build before moving the MapController
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _mapController.move(_userLocation, 14.0);
+        }
+      });
+    }
+  }
 
   // Category Names
   final List<String> _categories = [
@@ -554,7 +605,6 @@ class _ResponsiveMainLayoutState extends State<ResponsiveMainLayout> {
 
   // map but kailangan e api, same sa gibuhat ni sir, so ilisan ni siya
   Widget _buildGeoSearchTab() {
-    // Filter items based on radius slider
     final filteredItems = _items.where((item) {
       final double distKm = _distance.as(
         LengthUnit.Kilometer,
@@ -564,254 +614,217 @@ class _ResponsiveMainLayoutState extends State<ResponsiveMainLayout> {
       return distKm <= _searchRadiusKm;
     }).toList();
 
-    return Column(
-      children: [
-        _buildGradientHeader('Geo Radius Search', 'Explore interactive neighborhood map'),
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildGradientHeader('Geo Radius Search', 'Explore interactive neighborhood map'),
+          const SizedBox(height: 16),
+
+          // 1. Search Radius Slider Card
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.teal.shade200),
+            ),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
-                // 1. Radius Slider
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.teal.shade200),
-                    boxShadow: [
-                      BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 8, offset: const Offset(0, 2))
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(Icons.radar_rounded, color: Colors.teal.shade800),
-                              const SizedBox(width: 8),
-                              const Text('Search Radius:', style: TextStyle(fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                          Text(
-                            '${_searchRadiusKm.toStringAsFixed(1)} km',
-                            style: TextStyle(fontWeight: FontWeight.w900, color: Colors.teal.shade800),
-                          ),
-                        ],
-                      ),
-                      Slider(
-                        value: _searchRadiusKm,
-                        min: 0.5,
-                        max: 5.0,
-                        divisions: 9,
-                        activeColor: Colors.teal.shade700,
-                        inactiveColor: Colors.teal.shade100,
-                        onChanged: (val) => setState(() => _searchRadiusKm = val),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // 2. Map Canvas Card with Fullscreen Button
-                Container(
-                  height: 320, // Increased default height from 280 to 320 for better visibility
-                  width: double.infinity,
-                  clipBehavior: Clip.antiAlias,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE3F2FD),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.teal.shade300, width: 2),
-                    boxShadow: [
-                      BoxShadow(color: Colors.teal.withAlpha(20), blurRadius: 10, offset: const Offset(0, 4))
-                    ],
-                  ),
-                  child: Stack(
-                    children: [
-                      FlutterMap(
-                        mapController: _mapController,
-                        options: MapOptions(
-                          initialCenter: _userLocation,
-                          initialZoom: 14.0,
-                        ),
-                        children: [
-                          TileLayer(
-                            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                            userAgentPackageName: 'com.example.spot_drop',
-                            maxZoom: 19,
-                          ),
-
-                          // Visual Search Radius Overlay
-                          CircleLayer(
-                            circles: [
-                              CircleMarker(
-                                point: _userLocation,
-                                radius: _searchRadiusKm * 1000, // Converts KM to meters
-                                useRadiusInMeter: true,
-                                color: Colors.teal.withOpacity(0.15),
-                                borderColor: Colors.teal.shade700,
-                                borderStrokeWidth: 2,
-                              ),
-                            ],
-                          ),
-
-                          // Markers Layer
-                          MarkerLayer(
-                            markers: [
-                              // User Location Marker
-                              Marker(
-                                point: _userLocation,
-                                width: 90,
-                                height: 55,
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.my_location_rounded, color: Colors.blueAccent, size: 28),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                      decoration: const BoxDecoration(
-                                        color: Colors.black87,
-                                        borderRadius: BorderRadius.all(Radius.circular(6)),
-                                      ),
-                                      child: const Text(
-                                        'You are here',
-                                        style: TextStyle(color: Colors.white, fontSize: 9),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-
-                              // Dynamic Item Markers inside Radius
-                              ...filteredItems.map((item) {
-                                final catTheme = _themeColors[item['category']] ?? _themeColors['Default']!;
-                                return Marker(
-                                  point: item['latLng'] as LatLng,
-                                  width: 95,
-                                  height: 60,
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      _mapController.move(item['latLng'] as LatLng, 16.0);
-                                    },
-                                    child: _buildMapPin(
-                                      item['title'] as String,
-                                      catTheme['primary']!,
-                                      item['icon'] as IconData,
-                                    ),
-                                  ),
-                                );
-                              }),
-                            ],
-                          ),
-                        ],
-                      ),
-
-                      // Expand / Fullscreen Floating Action Button
-                      Positioned(
-                        top: 12,
-                        right: 12,
-                        child: FloatingActionButton.small(
-                          heroTag: 'expand_map_btn',
-                          backgroundColor: Colors.white,
-                          foregroundColor: Colors.teal.shade800,
-                          child: const Icon(Icons.fullscreen_rounded, size: 24),
-                          onPressed: () {
-                            _showExpandedMapDialog(context, filteredItems);
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Items Pinpointed Nearby',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+                    Row(
+                      children: [
+                        Icon(Icons.radar_rounded, color: Colors.teal.shade800),
+                        const SizedBox(width: 8),
+                        const Text('Search Radius:', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ],
                     ),
                     Text(
-                      '${filteredItems.length} items',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.teal.shade800),
+                      '${_searchRadiusKm.toStringAsFixed(1)} km',
+                      style: TextStyle(fontWeight: FontWeight.w900, color: Colors.teal.shade800),
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
+                Slider(
+                  value: _searchRadiusKm,
+                  min: 0.5,
+                  max: 5.0,
+                  divisions: 9,
+                  activeColor: Colors.teal.shade700,
+                  inactiveColor: Colors.teal.shade100,
+                  onChanged: (val) => setState(() => _searchRadiusKm = val),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
 
-                // 3. Quick Item Cards
-                SizedBox(
-                  height: 100,
-                  child: filteredItems.isEmpty
-                      ? Center(
-                    child: Text(
-                      'No items found within ${_searchRadiusKm.toStringAsFixed(1)} km',
-                      style: const TextStyle(color: Colors.grey),
+          // 2. Interactive Map Container (250 height prevents overflow)
+          Container(
+            height: 250,
+            width: double.infinity,
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.teal.shade300, width: 2),
+            ),
+            child: Stack(
+              children: [
+                FlutterMap(
+                  mapController: _mapController,
+                  options: MapOptions(
+                    initialCenter: _userLocation,
+                    initialZoom: 14.0,
+                  ),
+                  children: [
+                    TileLayer(
+                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName: 'com.example.spot_drop',
+                      maxZoom: 19,
                     ),
-                  )
-                      : ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: filteredItems.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 12),
-                    itemBuilder: (context, idx) {
-                      final item = filteredItems[idx];
-                      final catTheme = _themeColors[item['category']] ?? _themeColors['Default']!;
-
-                      final double dist = _distance.as(
-                        LengthUnit.Kilometer,
-                        _userLocation,
-                        item['latLng'] as LatLng,
-                      );
-
-                      return InkWell(
-                        borderRadius: BorderRadius.circular(14),
-                        onTap: () {
-                          _mapController.move(item['latLng'] as LatLng, 16.0);
-                        },
-                        child: Container(
-                          width: 230,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: catTheme['primary']!.withAlpha(80)),
-                          ),
-                          child: Row(
+                    CircleLayer(
+                      circles: [
+                        CircleMarker(
+                          point: _userLocation,
+                          radius: _searchRadiusKm * 1000,
+                          useRadiusInMeter: true,
+                          color: Colors.teal.withOpacity(0.15),
+                          borderColor: Colors.teal.shade700,
+                          borderStrokeWidth: 2,
+                        ),
+                      ],
+                    ),
+                    MarkerLayer(
+                      markers: [
+                        Marker(
+                          point: _userLocation,
+                          width: 90,
+                          height: 55,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
+                              const Icon(Icons.my_location_rounded, color: Colors.blueAccent, size: 28),
                               Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(color: catTheme['bg'], borderRadius: BorderRadius.circular(10)),
-                                child: Icon(item['icon'] as IconData, color: catTheme['primary'], size: 28),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(item['title'] as String, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                    const SizedBox(height: 4),
-                                    Text('${item['owner']} (${dist.toStringAsFixed(1)} km away)', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                                  ],
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: const BoxDecoration(
+                                  color: Colors.black87,
+                                  borderRadius: BorderRadius.all(Radius.circular(6)),
                                 ),
-                              )
+                                child: const Text('You are here', style: TextStyle(color: Colors.white, fontSize: 9)),
+                              ),
                             ],
                           ),
                         ),
-                      );
-                    },
+                        ...filteredItems.map((item) {
+                          final catTheme = _themeColors[item['category']] ?? _themeColors['Default']!;
+                          return Marker(
+                            point: item['latLng'] as LatLng,
+                            width: 95,
+                            height: 60,
+                            child: GestureDetector(
+                              onTap: () {
+                                _mapController.move(item['latLng'] as LatLng, 16.0);
+                              },
+                              child: _buildMapPin(
+                                item['title'] as String,
+                                catTheme['primary']!,
+                                item['icon'] as IconData,
+                              ),
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                  ],
+                ),
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: FloatingActionButton.small(
+                    heroTag: 'expand_map_btn',
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.teal.shade800,
+                    child: const Icon(Icons.fullscreen_rounded, size: 24),
+                    onPressed: () => _showExpandedMapDialog(context, filteredItems),
                   ),
                 ),
               ],
             ),
           ),
-        ),
-      ],
+          const SizedBox(height: 20),
+
+          // 3. Bottom Cards Section
+          Text(
+            'Items Pinpointed Nearby',
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 100,
+            child: filteredItems.isEmpty
+                ? Center(
+              child: Text(
+                'No items found within ${_searchRadiusKm.toStringAsFixed(1)} km',
+                style: const TextStyle(color: Colors.grey),
+              ),
+            )
+                : ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: filteredItems.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              itemBuilder: (context, idx) {
+                final item = filteredItems[idx];
+                final catTheme = _themeColors[item['category']] ?? _themeColors['Default']!;
+                final double dist = _distance.as(
+                  LengthUnit.Kilometer,
+                  _userLocation,
+                  item['latLng'] as LatLng,
+                );
+
+                return InkWell(
+                  borderRadius: BorderRadius.circular(14),
+                  onTap: () {
+                    _mapController.move(item['latLng'] as LatLng, 16.0);
+                  },
+                  child: Container(
+                    width: 230,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: catTheme['primary']!.withAlpha(80)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(color: catTheme['bg'], borderRadius: BorderRadius.circular(10)),
+                          child: Icon(item['icon'] as IconData, color: catTheme['primary'], size: 28),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(item['title'] as String, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                              const SizedBox(height: 4),
+                              Text('${item['owner']} (${dist.toStringAsFixed(1)} km away)', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                            ],
+                          ),
+                        )
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 

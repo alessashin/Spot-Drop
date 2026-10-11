@@ -10,6 +10,8 @@ dependencies:
   flutter:
     sdk: flutter
 
+  flutter_launcher_icons: "^0.13.1"
+
 
   # Firebase Core & Database
   firebase_core: ^3.15.2
@@ -19,7 +21,7 @@ dependencies:
   # Cross-Platform Interactive Mapping (Android + Web)
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
-  geolocator: ^13.0.2
+  geolocator: ^13.0.4
   flutter_map_location_marker: ^9.1.1
   flutter_polyline_points: ^3.1.0
 
@@ -37,3 +39,10 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - android/app/src/assets/SpotDrop.jpg
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: false
+  image_path: "android/app/src/assets/SpotDrop.jpg"
