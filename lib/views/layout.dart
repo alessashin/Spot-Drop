@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:flutter_map_location_marker/flutter_map_location_marker.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -289,7 +287,7 @@ class _ResponsiveMainLayoutState extends State<ResponsiveMainLayout> {
       ),
       floatingActionButton: _selectedIndex == 0
           ? FloatingActionButton.extended(
-        onPressed: () {},
+        onPressed: () => _showShareItemBottomSheet(),
         backgroundColor: Colors.teal.shade800,
         elevation: 4,
         icon: const Icon(Icons.add, color: Colors.white),
@@ -514,7 +512,10 @@ class _ResponsiveMainLayoutState extends State<ResponsiveMainLayout> {
                         borderRadius: BorderRadius.circular(18),
                         side: BorderSide(color: catTheme['primary']!.withAlpha(80)),
                       ),
-                      child: Padding(
+                      child: InkWell(
+                        onTap: () => _showItemDetailsBottomSheet(item),
+                        borderRadius: BorderRadius.circular(18),
+                        child: Padding(
                         padding: const EdgeInsets.all(14.0),
                         child: Row(
                           children: [
@@ -591,6 +592,7 @@ class _ResponsiveMainLayoutState extends State<ResponsiveMainLayout> {
                             ),
                           ],
                         ),
+                      ),
                       ),
                     );
                   },
@@ -932,7 +934,7 @@ class _ResponsiveMainLayoutState extends State<ResponsiveMainLayout> {
                             ],
                           ),
                           OutlinedButton(
-                            onPressed: () {},
+                            onPressed: () => _showLogsBottomSheet(req),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: statusColor,
                               side: BorderSide(color: statusColor),
@@ -952,7 +954,673 @@ class _ResponsiveMainLayoutState extends State<ResponsiveMainLayout> {
       ],
     );
   }
+
+//bydakme
+void _showLogsBottomSheet(Map<String, dynamic> req) {
+  final String status = req['status'] as String;
+  final Color statusColor = req['statusColor'] as Color;
+  final IconData icon = req['icon'] as IconData;
+
+  List<Map<String, dynamic>> logs = [];
+  if (status == 'ACTIVE') {
+    logs = [
+      {
+        'title': 'Request Submitted',
+        'time': 'Oct 4, 2026 • 09:15 AM',
+        'desc': 'Borrow request sent to ${req['owner']}.',
+        'done': true,
+      },
+      {
+        'title': 'Owner Approved',
+        'time': 'Oct 4, 2026 • 10:30 AM',
+        'desc': 'Request accepted. Pickup agreed.',
+        'done': true,
+      },
+      {
+        'title': 'Item Picked Up',
+        'time': 'Oct 4, 2026 • 02:00 PM',
+        'desc': 'Condition verified at pickup.',
+        'done': true,
+      },
+      {
+        'title': 'Return Due',
+        'time': req['dueText'],
+        'desc': 'Scheduled return date: Oct 6, 2026.',
+        'done': false,
+      },
+    ];
+  } else if (status == 'PENDING') {
+    logs = [
+      {
+        'title': 'Request Submitted',
+        'time': 'Oct 10, 2026 • 08:00 AM',
+        'desc': 'Borrow request sent to ${req['owner']}.',
+        'done': true,
+      },
+      {
+        'title': 'Awaiting Approval',
+        'time': 'Pending',
+        'desc': 'Waiting for ${req['owner']} to accept or decline.',
+        'done': false,
+      },
+      {
+        'title': 'Scheduled Pickup',
+        'time': 'Oct 10, 2026',
+        'desc': 'Pending owner response',
+        'done': false,
+      },
+    ];
+  } else {
+    logs = [
+      {
+        'title': 'Request Submitted',
+        'time': 'Sep 25, 2026 • 11:00 AM',
+        'desc': 'Borrow request sent to ${req['owner']}.',
+        'done': true,
+      },
+      {
+        'title': 'Owner Approved',
+        'time': 'Sep 25, 2026 • 11:45 AM',
+        'desc': 'Request approved by ${req['owner']}.',
+        'done': true,
+      },
+      {
+        'title': 'Item Handed Over',
+        'time': 'Sep 25, 2026 • 01:15 PM',
+        'desc': 'Condition logged at pickup.',
+        'done': true,
+      },
+      {
+        'title': 'Item Returned & Closed',
+        'time': 'Sep 27, 2026 • 04:30 PM',
+        'desc': 'Returned safely in good condition.',
+        'done': true,
+      },
+    ];
+  }
+
+
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (context) {
+      return Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: statusColor.withAlpha(30),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(icon, color: statusColor, size: 28),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        req['title'] as String,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Owner: ${req['owner']} • ${req['dates']}',
+                        style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: statusColor,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    status,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 15),
+            const Divider(),
+            const SizedBox(height: 12),
+            Text(
+              'Activity & Borrowing Logs',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey.shade800,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ...List.generate(logs.length, (i) {
+              final log = logs[i];
+              final bool isLast = i == logs.length - 1;
+              final bool isDone = log['done'] as bool;
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Column(
+                    children: [
+                      Container(
+                        width: 22,
+                        height: 22,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isDone ? statusColor : Colors.grey.shade300,
+                        ),
+                        child: Icon(
+                          isDone ? Icons.check : Icons.circle,
+                          size: 14,
+                          color: Colors.white,
+                        ),
+                      ),
+                      if (!isLast)
+                        Container(
+                          width: 2,
+                          height: 36,
+                          color: isDone ? statusColor.withAlpha(120) : Colors.grey.shade300,
+                        ),
+                    ],
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                log['title'] as String,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: isDone ? Colors.black87 : Colors.grey.shade600,
+                                ),
+                              ),
+                              Text(
+                                log['time'] as String,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            log['desc'] as String,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal.shade800,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                child: const Text('Close'),
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
 }
+
+
+IconData _getCategoryIcon(String category) {
+  switch (category) {
+    case 'Tools':
+      return Icons.build_rounded;
+    case 'Camping':
+      return Icons.cabin_rounded;
+    case 'Garden':
+      return Icons.grass_rounded;
+    case 'Kitchen':
+      return Icons.soup_kitchen_rounded;
+    case 'Party':
+      return Icons.speaker_rounded;
+    case 'Storage':
+      return Icons.inventory_2_rounded;
+    default:
+      return Icons.category_rounded;
+  }
+}
+
+void _showShareItemBottomSheet() {
+  final titleController = TextEditingController();
+  final statusController = TextEditingController(text: 'Available Today');
+  String selectedCategory = 'Tools';
+  String selectedType = 'Borrow';
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (context) {
+      return StatefulBuilder(
+        builder: (context, setSheetState) {
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              padding: const EdgeInsets.all(20),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.teal.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(Icons.add_business_rounded, color: Colors.teal.shade800, size: 24),
+                        ),
+                        const SizedBox(width: 12),
+                        const Text(
+                          'Share Item with Neighbors',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    const Divider(),
+                    const SizedBox(height: 12),
+
+                    TextField(
+                      controller: titleController,
+                      decoration: InputDecoration(
+                        labelText: 'Item Title',
+                        hintText: 'e.g. Cordless Drill, Lawn Mower',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        prefixIcon: const Icon(Icons.title),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    DropdownButtonFormField<String>(
+                      initialValue: selectedCategory,
+                      decoration: InputDecoration(
+                        labelText: 'Category',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        prefixIcon: const Icon(Icons.category_outlined),
+                      ),
+                      items: ['Tools', 'Camping', 'Garden', 'Kitchen', 'Party', 'Storage']
+                          .map((cat) => DropdownMenuItem(
+                        value: cat,
+                        child: Text(cat),
+                      ))
+                          .toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setSheetState(() => selectedCategory = val);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 14),
+
+                    DropdownButtonFormField<String>(
+                      initialValue: selectedType,
+                      decoration: InputDecoration(
+                        labelText: 'Listing Type',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        prefixIcon: const Icon(Icons.swap_horizontal_circle_outlined),
+                      ),
+                      items: ['Borrow', 'Giveaway']
+                          .map((t) => DropdownMenuItem(
+                        value: t,
+                        child: Text(t == 'Borrow' ? 'Borrowable' : 'Free Giveaway'),
+                      ))
+                          .toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setSheetState(() => selectedType = val);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 14),
+
+                    TextField(
+                      controller: statusController,
+                      decoration: InputDecoration(
+                        labelText: 'Availability Note',
+                        hintText: 'e.g. Available Today, Free Pick Up',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        prefixIcon: const Icon(Icons.event_available),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          final title = titleController.text.trim();
+                          if (title.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Please enter an item title')),
+                            );
+                            return;
+                          }
+
+                          final newItem = {
+                            'title': title,
+                            'category': selectedCategory,
+                            'owner': 'You (0.1 km away)',
+                            'type': selectedType,
+                            'status': statusController.text.trim().isEmpty
+                                ? 'Available Today'
+                                : statusController.text.trim(),
+                            'icon': _getCategoryIcon(selectedCategory),
+                          };
+
+                          setState(() {
+                            _items.insert(0, newItem);
+                          });
+
+                          Navigator.pop(context);
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('"$title" added to community listings!'),
+                              backgroundColor: Colors.teal.shade800,
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.teal.shade800,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'Post Item',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    },
+  );
+}
+
+
+
+void _showItemDetailsBottomSheet(Map<String, dynamic> item) {
+  final catTheme = _themeColors[item['category']] ?? _themeColors['Default']!;
+  final bool isGiveaway = item['type'] == 'Giveaway';
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (context) {
+      return Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.all(20),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              Container(
+                width: double.infinity,
+                height: 110,
+                decoration: BoxDecoration(
+                  color: catTheme['bg'],
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: catTheme['primary']!.withAlpha(80)),
+                ),
+                child: Center(
+                  child: Icon(
+                    item['icon'] as IconData,
+                    size: 52,
+                    color: catTheme['primary'],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      item['title'] as String,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: isGiveaway ? Colors.purple.shade700 : catTheme['primary'],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      (item['type'] as String).toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+
+              Row(
+                children: [
+                  Icon(Icons.category_outlined, size: 16, color: Colors.grey.shade600),
+                  const SizedBox(width: 4),
+                  Text(
+                    item['category'] as String,
+                    style: TextStyle(fontSize: 13, color: Colors.grey.shade800, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(width: 14),
+                  Icon(Icons.person_outline, size: 16, color: Colors.grey.shade600),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      item['owner'] as String,
+                      style: TextStyle(fontSize: 13, color: Colors.grey.shade800),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+
+              Row(
+                children: [
+                  Icon(Icons.event_available, size: 16, color: catTheme['primary']),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Status: ${item['status']}',
+                    style: TextStyle(fontSize: 13, color: catTheme['primary'], fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 16),
+              const Divider(),
+              const SizedBox(height: 12),
+
+              const Text(
+                'Item Details & Terms',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'This item is shared by a neighbor for local community ${isGiveaway ? 'giveaway' : 'borrowing'}. Please communicate with the owner for pickup and handle equipment responsibly.',
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade700, height: 1.4),
+              ),
+
+              const SizedBox(height: 24),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text('Close'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Request sent for "${item['title']}"!'),
+                            backgroundColor: Colors.teal.shade800,
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.teal.shade800,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(isGiveaway ? 'Claim Item' : 'Request Item'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+}
+
+
 
 // Custom Painter for Map Grid Background
 class MapGridPainter extends CustomPainter {

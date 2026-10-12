@@ -57,10 +57,27 @@ class ItemModel {
         orElse: () => ItemType.borrowable,
       ),
       imageUrls: List<String>.from(map['imageUrls'] ?? []),
-      latitude: (map['latitude'] as num).toDouble(),
-      longitude: (map['longitude'] as num).toDouble(),
+      latitude: (map['latitude'] as num?)?.toDouble() ?? 0.0,
+      longitude: (map['longitude'] as num?)?.toDouble() ?? 0.0,
       isAvailable: map['isAvailable'] ?? true,
-      createdAt: (map['createdAt'] as Timestamp).toDate(),
+      createdAt: map['createdAt'] is Timestamp
+          ? (map['createdAt'] as Timestamp).toDate()
+          : (map['createdAt'] is String
+              ? DateTime.tryParse(map['createdAt']) ?? DateTime.now()
+              : DateTime.now()),
     );
   }
 }
+
+// imageUrls: List<String>.from(map['imageUrls'] ?? []),
+//       latitude: (map['latitude'] as num?)?.toDouble() ?? 0.0,
+//       longitude: (map['longitude'] as num?)?.toDouble() ?? 0.0,
+//       isAvailable: map['isAvailable'] ?? true,
+//       createdAt: map['createdAt'] is Timestamp
+//           ? (map['createdAt'] as Timestamp).toDate()
+//           : (map['createdAt'] is String
+//               ? DateTime.tryParse(map['createdAt']) ?? DateTime.now()
+//               : DateTime.now()),
+//     );
+//   }
+// }

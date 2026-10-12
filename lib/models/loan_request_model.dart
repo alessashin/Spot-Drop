@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+  import 'package:cloud_firestore/cloud_firestore.dart';
 
 enum LoanStatus { pending, active, returned, rejected }
 
@@ -56,15 +56,27 @@ class LoanRequestModel {
       itemImageUrl: map['itemImageUrl'] ?? '',
       borrowerId: map['borrowerId'] ?? '',
       ownerId: map['ownerId'] ?? '',
-      startDate: (map['startDate'] as Timestamp).toDate(),
-      endDate: (map['endDate'] as Timestamp).toDate(),
+      startDate: map['startDate'] is Timestamp
+          ? (map['startDate'] as Timestamp).toDate()
+          : (map['startDate'] is String
+              ? DateTime.tryParse(map['startDate']) ?? DateTime.now()
+              : DateTime.now()),
+      endDate: map['endDate'] is Timestamp
+          ? (map['endDate'] as Timestamp).toDate()
+          : (map['endDate'] is String
+              ? DateTime.tryParse(map['endDate']) ?? DateTime.now()
+              : DateTime.now()),
       status: LoanStatus.values.firstWhere(
             (e) => e.name == map['status'],
         orElse: () => LoanStatus.pending,
       ),
       pickupConditionPhotos: List<String>.from(map['pickupConditionPhotos'] ?? []),
       returnConditionPhotos: List<String>.from(map['returnConditionPhotos'] ?? []),
-      requestedAt: (map['requestedAt'] as Timestamp).toDate(),
+      requestedAt: map['requestedAt'] is Timestamp
+          ? (map['requestedAt'] as Timestamp).toDate()
+          : (map['requestedAt'] is String
+              ? DateTime.tryParse(map['requestedAt']) ?? DateTime.now()
+              : DateTime.now()),
     );
   }
 }
