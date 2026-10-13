@@ -13,6 +13,8 @@ class ResponsiveMainLayout extends StatefulWidget {
 class _ResponsiveMainLayoutState extends State<ResponsiveMainLayout> {
   int _selectedIndex = 0;
   String _selectedCategory = 'All';
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
   double _searchRadiusKm = 1.5;
 
   // Map & Distance Controllers
@@ -243,8 +245,9 @@ class _ResponsiveMainLayoutState extends State<ResponsiveMainLayout> {
                     ),
                     ...items.map((item) {
                       final catTheme = _themeColors[item['category']] ?? _themeColors['Default']!;
+                      final itemLatLng = (item['latLng'] as LatLng?) ?? _userLocation;
                       return Marker(
-                        point: item['latLng'] as LatLng,
+                        point: itemLatLng,
                         width: 95,
                         height: 60,
                         child: _buildMapPin(
@@ -423,9 +426,20 @@ class _ResponsiveMainLayoutState extends State<ResponsiveMainLayout> {
 
   // tab 1
   Widget _buildBrowseTab() {
-    final filteredItems = _selectedCategory == 'All'
-        ? _items
-        : _items.where((item) => item['category'] == _selectedCategory).toList();
+    final filteredItems = _items.where((item) {
+      final matchesCategory = _selectedCategory == 'All' || item['category'] == _selectedCategory;
+      final title = (item['title'] as String).toLowerCase();
+      final owner = (item['owner'] as String).toLowerCase();
+      final category = (item['category'] as String).toLowerCase();
+      final query = _searchQuery.trim().toLowerCase();
+
+      final matchesSearch = query.isEmpty ||
+          title.contains(query) ||
+          owner.contains(query) ||
+          category.contains(query);
+
+      return matchesCategory && matchesSearch;
+    }).toList();
 
     return Column(
       children: [
@@ -447,10 +461,27 @@ class _ResponsiveMainLayoutState extends State<ResponsiveMainLayout> {
                     ],
                   ),
                   child: TextField(
+                    controller: _searchController,
+                    onChanged: (val) {
+                      setState(() {
+                        _searchQuery = val;
+                      });
+                    },
                     decoration: InputDecoration(
                       hintText: 'Search tools, camping gear, boxes...',
                       hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 14),
                       prefixIcon: const Icon(Icons.search, color: Colors.orange),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, color: Colors.grey),
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() {
+                                  _searchQuery = '';
+                                });
+                              },
+                            )
+                          : null,
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                       contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
                     ),
@@ -608,10 +639,11 @@ class _ResponsiveMainLayoutState extends State<ResponsiveMainLayout> {
   // map but kailangan e api, same sa gibuhat ni sir, so ilisan ni siya
   Widget _buildGeoSearchTab() {
     final filteredItems = _items.where((item) {
+      final itemLatLng = (item['latLng'] as LatLng?) ?? _userLocation;
       final double distKm = _distance.as(
         LengthUnit.Kilometer,
         _userLocation,
-        item['latLng'] as LatLng,
+        itemLatLng,
       );
       return distKm <= _searchRadiusKm;
     }).toList();
@@ -722,13 +754,14 @@ class _ResponsiveMainLayoutState extends State<ResponsiveMainLayout> {
                         ),
                         ...filteredItems.map((item) {
                           final catTheme = _themeColors[item['category']] ?? _themeColors['Default']!;
+                          final itemLatLng = (item['latLng'] as LatLng?) ?? _userLocation;
                           return Marker(
-                            point: item['latLng'] as LatLng,
+                            point: itemLatLng,
                             width: 95,
                             height: 60,
                             child: GestureDetector(
                               onTap: () {
-                                _mapController.move(item['latLng'] as LatLng, 16.0);
+                                _mapController.move(itemLatLng, 16.0);
                               },
                               child: _buildMapPin(
                                 item['title'] as String,
@@ -780,16 +813,17 @@ class _ResponsiveMainLayoutState extends State<ResponsiveMainLayout> {
               itemBuilder: (context, idx) {
                 final item = filteredItems[idx];
                 final catTheme = _themeColors[item['category']] ?? _themeColors['Default']!;
+                final itemLatLng = (item['latLng'] as LatLng?) ?? _userLocation;
                 final double dist = _distance.as(
                   LengthUnit.Kilometer,
                   _userLocation,
-                  item['latLng'] as LatLng,
+                  itemLatLng,
                 );
 
                 return InkWell(
                   borderRadius: BorderRadius.circular(14),
                   onTap: () {
-                    _mapController.move(item['latLng'] as LatLng, 16.0);
+                    _mapController.move(itemLatLng, 16.0);
                   },
                   child: Container(
                     width: 230,
@@ -1223,6 +1257,11 @@ void _showLogsBottomSheet(Map<String, dynamic> req) {
 }
 
 
+String _formatDate(DateTime dt) {
+  final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return '${months[dt.month - 1]} ${dt.day}, ${dt.year}';
+}
+
 IconData _getCategoryIcon(String category) {
   switch (category) {
     case 'Tools':
@@ -1247,6 +1286,7 @@ void _showShareItemBottomSheet() {
   final statusController = TextEditingController(text: 'Available Today');
   String selectedCategory = 'Tools';
   String selectedType = 'Borrow';
+  DateTime? selectedDate;
 
   showModalBottomSheet(
     context: context,
@@ -1367,12 +1407,30 @@ void _showShareItemBottomSheet() {
                     TextField(
                       controller: statusController,
                       decoration: InputDecoration(
-                        labelText: 'Availability Note',
+                        labelText: 'Availability Note / Date',
                         hintText: 'e.g. Available Today, Free Pick Up',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                         prefixIcon: const Icon(Icons.event_available),
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.calendar_month, color: Colors.teal),
+                          tooltip: 'Pick Date',
+                          onPressed: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: selectedDate ?? DateTime.now(),
+                              firstDate: DateTime.now(),
+                              lastDate: DateTime.now().add(const Duration(days: 365)),
+                            );
+                            if (picked != null) {
+                              setSheetState(() {
+                                selectedDate = picked;
+                                statusController.text = 'Available from ${_formatDate(picked)}';
+                              });
+                            }
+                          },
+                        ),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -1398,6 +1456,7 @@ void _showShareItemBottomSheet() {
                                 ? 'Available Today'
                                 : statusController.text.trim(),
                             'icon': _getCategoryIcon(selectedCategory),
+                            'latLng': _userLocation,
                           };
 
                           setState(() {
