@@ -162,7 +162,7 @@ class _ResponsiveMainLayoutState extends State<ResponsiveMainLayout> {
       'status': 'ACTIVE',
       'statusColor': Colors.orange,
       'icon': Icons.build_rounded,
-      'dueText': 'Return due in 2 days',
+      'dueText': 'Return due in 3 days',
     },
     {
       'title': '4-Person Camping Tent',
