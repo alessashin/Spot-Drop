@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
+import 'login_view.dart';
 
 class ResponsiveMainLayout extends StatefulWidget {
   const ResponsiveMainLayout({super.key});
@@ -56,7 +57,9 @@ class _ResponsiveMainLayoutState extends State<ResponsiveMainLayout> {
     }
 
     final Position position = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+      ),
     );
 
     if (mounted) {
@@ -216,7 +219,7 @@ class _ResponsiveMainLayoutState extends State<ResponsiveMainLayout> {
                       point: _userLocation,
                       radius: _searchRadiusKm * 1000,
                       useRadiusInMeter: true,
-                      color: Colors.teal.withOpacity(0.15),
+                      color: Colors.teal.withAlpha(40),
                       borderColor: Colors.teal.shade700,
                       borderStrokeWidth: 2,
                     ),
@@ -284,6 +287,7 @@ class _ResponsiveMainLayoutState extends State<ResponsiveMainLayout> {
               _buildBrowseTab(),
               _buildGeoSearchTab(),
               _buildRequestsTab(),
+              _buildProfileTab(),
             ],
           ),
         ],
@@ -330,6 +334,11 @@ class _ResponsiveMainLayoutState extends State<ResponsiveMainLayout> {
               icon: Icon(Icons.swap_horiz_outlined),
               selectedIcon: Icon(Icons.swap_horiz, color: Colors.teal),
               label: 'Requests',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.person_outline),
+              selectedIcon: Icon(Icons.person, color: Colors.teal),
+              label: 'Profile',
             ),
           ],
         ),
@@ -459,7 +468,10 @@ class _ResponsiveMainLayoutState extends State<ResponsiveMainLayout> {
 
     return Column(
       children: [
-        _buildGradientHeader('SpotDrop', 'Maplewood Community • 0.5 km radius'),
+        _buildGradientHeader(
+          'SpotDrop',
+          _isLoadingLocation ? 'Locating GPS position...' : 'Maplewood Community • 0.5 km radius',
+        ),
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16.0),
@@ -664,13 +676,15 @@ class _ResponsiveMainLayoutState extends State<ResponsiveMainLayout> {
       return distKm <= _searchRadiusKm;
     }).toList();
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildGradientHeader('Geo Radius Search', 'Explore interactive neighborhood map'),
-          const SizedBox(height: 16),
+    return Column(
+      children: [
+        _buildGradientHeader('Geo Radius Search', 'Explore interactive neighborhood map'),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
 
           // 1. Search Radius Slider Card
           Container(
@@ -741,7 +755,7 @@ class _ResponsiveMainLayoutState extends State<ResponsiveMainLayout> {
                           point: _userLocation,
                           radius: _searchRadiusKm * 1000,
                           useRadiusInMeter: true,
-                          color: Colors.teal.withOpacity(0.15),
+                          color: Colors.teal.withAlpha(40),
                           borderColor: Colors.teal.shade700,
                           borderStrokeWidth: 2,
                         ),
@@ -802,6 +816,23 @@ class _ResponsiveMainLayoutState extends State<ResponsiveMainLayout> {
                     onPressed: () => _showExpandedMapDialog(context, filteredItems),
                   ),
                 ),
+                if (_isLoadingLocation)
+                  Container(
+                    color: Colors.white.withAlpha(200),
+                    child: const Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircularProgressIndicator(color: Colors.teal),
+                          SizedBox(height: 8),
+                          Text(
+                            'Acquiring location...',
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.teal),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -867,7 +898,7 @@ class _ResponsiveMainLayoutState extends State<ResponsiveMainLayout> {
                               Text('${item['owner']} (${dist.toStringAsFixed(1)} km away)', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, color: Colors.grey)),
                             ],
                           ),
-                        )
+                        ),
                       ],
                     ),
                   ),
@@ -877,8 +908,11 @@ class _ResponsiveMainLayoutState extends State<ResponsiveMainLayout> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  ),
+],
+);
+}
 
   // 4. Map Pin Helper Method (KEPT)
   Widget _buildMapPin(String label, Color color, IconData icon) {
@@ -1004,6 +1038,381 @@ class _ResponsiveMainLayoutState extends State<ResponsiveMainLayout> {
       ],
     );
   }
+
+  Widget _buildProfileTab() {
+    return Column(
+      children: [
+        _buildGradientHeader('My Profile', 'Maplewood Community Member'),
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                // Profile Avatar & Info Card
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.teal.shade100),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withAlpha(10), blurRadius: 10, offset: const Offset(0, 4)),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Stack(
+                        children: [
+                          CircleAvatar(
+                            radius: 42,
+                            backgroundColor: Colors.teal.shade100,
+                            child: Icon(Icons.person, size: 50, color: Colors.teal.shade800),
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: Colors.teal.shade800,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.edit, size: 14, color: Colors.white),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Assh Dc Cabaral',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'assh.cabaral@email.com',
+                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade50,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.green.shade300),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.verified, size: 14, color: Colors.green.shade700),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Verified Neighbor',
+                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.green.shade800),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      const Divider(),
+                      const SizedBox(height: 12),
+
+                      // Stats Row
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _buildProfileStat('3', 'Listed'),
+                          Container(width: 1, height: 30, color: Colors.grey.shade300),
+                          _buildProfileStat('5', 'Borrowed'),
+                          Container(width: 1, height: 30, color: Colors.grey.shade300),
+                          _buildProfileStat('4.9 ★', 'Rating'),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Settings & Options Card
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.teal.shade100),
+                  ),
+                  child: Column(
+                    children: [
+                      _buildProfileTile(
+                        icon: Icons.inventory_2_outlined,
+                        title: 'My Shared Items',
+                        subtitle: '3 items active in Maplewood',
+                        onTap: () => _showMySharedItemsBottomSheet(),
+                      ),
+                      const Divider(height: 1),
+                      _buildProfileTile(
+                        icon: Icons.history_rounded,
+                        title: 'Borrowing History',
+                        subtitle: 'View completed loan logs',
+                        onTap: () => setState(() => _selectedIndex = 2),
+                      ),
+                      const Divider(height: 1),
+                      _buildProfileTile(
+                        icon: Icons.notifications_none_rounded,
+                        title: 'Notification Settings',
+                        subtitle: 'Alerts for borrow requests',
+                        onTap: () => _showNotificationsBottomSheet(),
+                      ),
+                      const Divider(height: 1),
+                      _buildProfileTile(
+                        icon: Icons.help_outline_rounded,
+                        title: 'Help & Support',
+                        subtitle: 'Neighborhood guidelines & FAQ',
+                        onTap: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('SpotDrop Community Support Helpdesk')),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Log Out Button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Log Out'),
+                          content: const Text('Are you sure you want to log out of SpotDrop?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Cancel'),
+                            ),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade700, foregroundColor: Colors.white),
+                              onPressed: () {
+                                Navigator.pop(context);
+                                Navigator.of(context).pushReplacement(
+                                  MaterialPageRoute(builder: (_) => const LoginView()),
+                                );
+                              },
+                              child: const Text('Log Out'),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.logout_rounded, color: Colors.white),
+                    label: const Text('Log Out', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red.shade700,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProfileStat(String value, String label) {
+    return Column(
+      children: [
+        Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.teal.shade900)),
+        const SizedBox(height: 2),
+        Text(label, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+      ],
+    );
+  }
+
+  Widget _buildProfileTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(color: Colors.teal.shade50, borderRadius: BorderRadius.circular(10)),
+        child: Icon(icon, color: Colors.teal.shade800, size: 22),
+      ),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+      subtitle: Text(subtitle, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+      trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+      onTap: onTap,
+    );
+  }
+
+void _showMySharedItemsBottomSheet() {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (context) {
+      return StatefulBuilder(
+        builder: (context, setSheetState) {
+          final myItems = _items.where((i) {
+            final owner = (i['owner'] as String).toLowerCase();
+            return owner.contains('you') || owner.contains('alex') || owner.contains('assh');
+          }).toList();
+
+          return Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.teal.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(Icons.inventory_2_rounded, color: Colors.teal.shade800, size: 24),
+                        ),
+                        const SizedBox(width: 12),
+                        const Text(
+                          'My Shared Items',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                        ),
+                      ],
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.add_circle, color: Colors.teal, size: 28),
+                      tooltip: 'Share Item',
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _showShareItemBottomSheet();
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const Divider(),
+                const SizedBox(height: 10),
+
+                if (myItems.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Icon(Icons.inventory_2_outlined, size: 48, color: Colors.grey.shade400),
+                          const SizedBox(height: 8),
+                          Text('No items shared yet', style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 12),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              _showShareItemBottomSheet();
+                            },
+                            icon: const Icon(Icons.add, size: 18),
+                            label: const Text('Post First Item'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.teal.shade800,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  Flexible(
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: myItems.length,
+                      itemBuilder: (context, idx) {
+                        final item = myItems[idx];
+                        final catTheme = _themeColors[item['category']] ?? _themeColors['Default']!;
+
+                        return Card(
+                          elevation: 0,
+                          margin: const EdgeInsets.only(bottom: 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            side: BorderSide(color: catTheme['primary']!.withAlpha(80)),
+                          ),
+                          child: ListTile(
+                            leading: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: catTheme['bg'],
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Icon(item['icon'] as IconData, color: catTheme['primary'], size: 26),
+                            ),
+                            title: Text(item['title'] as String, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                            subtitle: Text('${item['category']} • ${item['status']}', style: TextStyle(fontSize: 11, color: Colors.grey.shade700)),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 22),
+                              onPressed: () {
+                                setState(() {
+                                  _items.remove(item);
+                                });
+                                setSheetState(() {});
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Removed "${item['title']}"')),
+                                );
+                              },
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('Close'),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    },
+  );
+}
 
 //bydakme
 void _showLogsBottomSheet(Map<String, dynamic> req) {

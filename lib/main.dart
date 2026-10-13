@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 
 // Import the provider and layout files from your project structure
 import 'providers/app_state_provider.dart';
-import 'views/layout.dart';
+import 'views/login_view.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
@@ -40,7 +40,7 @@ class SpotDropApp extends StatelessWidget {
             ),
           ),
         ),
-        home: const ResponsiveMainLayout(),
+        home: const LoginView(),
       ),
     );
   }
