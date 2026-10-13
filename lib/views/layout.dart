@@ -1382,6 +1382,8 @@ void _showNotificationsBottomSheet() {
                   final Color notifColor = notif['color'] as Color;
                   final bool unread = notif['unread'] as bool;
 
+
+
                   return Container(
                     padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
                     decoration: BoxDecoration(
