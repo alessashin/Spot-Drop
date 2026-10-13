@@ -415,9 +415,25 @@ class _ResponsiveMainLayoutState extends State<ResponsiveMainLayout> {
               ),
             ],
           ),
-          IconButton(
-            icon: const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 26),
-            onPressed: () {},
+          Stack(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 26),
+                onPressed: () => _showNotificationsBottomSheet(),
+              ),
+              Positioned(
+                right: 8,
+                top: 8,
+                child: Container(
+                  width: 10,
+                  height: 10,
+                  decoration: const BoxDecoration(
+                    color: Colors.orangeAccent,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -1256,6 +1272,198 @@ void _showLogsBottomSheet(Map<String, dynamic> req) {
   );
 }
 
+
+void _showNotificationsBottomSheet() {
+  final notifications = [
+    {
+      'title': 'Borrow Request Received',
+      'desc': 'Sarah K. sent a request to borrow your 4-Person Camping Tent.',
+      'time': '10 mins ago',
+      'icon': Icons.swap_horiz_rounded,
+      'color': Colors.blue.shade700,
+      'unread': true,
+    },
+    {
+      'title': 'Item Returned Safely',
+      'desc': 'Maya B. returned High-Yield Blender (Ninja). Rate experience!',
+      'time': '2 hours ago',
+      'icon': Icons.check_circle_outline_rounded,
+      'color': Colors.green.shade700,
+      'unread': true,
+    },
+    {
+      'title': 'Return Reminder',
+      'desc': 'Bosch Cordless Power Drill is due in 2 days (Oct 6).',
+      'time': 'Yesterday',
+      'icon': Icons.alarm_rounded,
+      'color': Colors.orange.shade800,
+      'unread': false,
+    },
+    {
+      'title': 'New Item Listed Nearby',
+      'desc': 'Chris T. shared a Portable JBL Party Speaker (0.5 km away).',
+      'time': '2 days ago',
+      'icon': Icons.storefront_rounded,
+      'color': Colors.teal.shade800,
+      'unread': false,
+    },
+  ];
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (context) {
+      return Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.teal.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(Icons.notifications_active_rounded, color: Colors.teal.shade800, size: 24),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'Notifications',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ],
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('All notifications marked as read')),
+                    );
+                  },
+                  child: const Text('Mark all read', style: TextStyle(fontSize: 12)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const Divider(),
+            const SizedBox(height: 10),
+            Flexible(
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: notifications.length,
+                separatorBuilder: (_, __) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final notif = notifications[index];
+                  final Color notifColor = notif['color'] as Color;
+                  final bool unread = notif['unread'] as bool;
+
+                  return Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                    decoration: BoxDecoration(
+                      color: unread ? Colors.teal.shade50.withAlpha(80) : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: notifColor.withAlpha(30),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(notif['icon'] as IconData, color: notifColor, size: 22),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    notif['title'] as String,
+                                    style: TextStyle(
+                                      fontWeight: unread ? FontWeight.bold : FontWeight.w600,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  Text(
+                                    notif['time'] as String,
+                                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                notif['desc'] as String,
+                                style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (unread)
+                          Container(
+                            margin: const EdgeInsets.only(left: 8, top: 4),
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: Colors.teal.shade700,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () => Navigator.pop(context),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text('Close'),
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
 
 String _formatDate(DateTime dt) {
   final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
